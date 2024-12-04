@@ -20,11 +20,7 @@ public class FilterController {
     @PostMapping("/filter")
     public ResponseEntity<String> filterLogs(
             @RequestBody FilterRequest filterRequest){
-        try {
-            fileFilterService.filterAndSaveLogs(filterRequest.getFileCode(),filterRequest.getFilterType());
-            return ResponseEntity.ok("Filtered logs saved to the database.");
-        }catch (IOException e){
-            return ResponseEntity.status(500).body("Error processing the log file: "+e.getMessage());
-        }
+        fileFilterService.filterAndSaveLogs(filterRequest.getFileCode(),filterRequest.getFilterType());
+        return ResponseEntity.ok("Filtered logs saved to the database.");
     }
 }
