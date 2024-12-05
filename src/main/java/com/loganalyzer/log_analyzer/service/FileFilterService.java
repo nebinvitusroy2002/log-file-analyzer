@@ -4,8 +4,7 @@ import com.loganalyzer.log_analyzer.fileDownloadUtil.FileDownloadUtil;
 import com.loganalyzer.log_analyzer.model.LogEntry;
 import com.loganalyzer.log_analyzer.repository.LogRepository;
 import com.loganalyzer.log_analyzer.service.interfaces.FileFilterServiceInterface;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.io.BufferedReader;
@@ -17,9 +16,11 @@ import java.util.ArrayList;
 import java.util.List;
 
 @Service
+@Slf4j
 public class FileFilterService implements FileFilterServiceInterface {
-    
-    private static final Logger logger = LoggerFactory.getLogger(FileFilterService.class);
+
+    //private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(FileFilterService.class);
+
 
     private final FileDownloadUtil fileDownloadUtil;
     private final LogRepository logRepository;
@@ -30,21 +31,21 @@ public class FileFilterService implements FileFilterServiceInterface {
     }
 
     public void filterAndSaveLogs(String fileCode,String filterType) {
-        logger.info("Starting the log filtering for fileCode: {}, filterType: {}",fileCode,filterType);
+        log.info("Starting the log filtering for fileCode: {}, filterType: {}",fileCode,filterType);
         Path logFilePath = null;
         try {
             logFilePath = fileDownloadUtil.getFileByCode(fileCode);
         }catch (Exception e){
-            logger.error("Error retrieving file with code {}: {}",fileCode,e.getMessage());
+            log.error("Error retrieving file with code {}: {}",fileCode,e.getMessage());
             return;
         }
         if (logFilePath == null){
-            logger.error("Log file path is null for the file code: {}",fileCode);
+            log.error("Log file path is null for the file code: {}",fileCode);
             return;
         }
         File logfile = logFilePath.toFile();
         if (!logfile.exists() || !logfile.isFile()){
-            logger.error("Log file not found {}",logFilePath);
+            log.error("Log file not found {}",logFilePath);
         }
 
         List<LogEntry> filteredLogs = new ArrayList<>();
@@ -59,11 +60,11 @@ public class FileFilterService implements FileFilterServiceInterface {
                 }
             }
             logRepository.saveAll(filteredLogs);
-            logger.info("Successfully saves {} log entries of type: {}",filteredLogs.size(),filterType);
+            log.info("Successfully saves {} log entries of type: {}",filteredLogs.size(),filterType);
         }catch (IOException e){
-            logger.error("Error reading log file: {}",logFilePath,e);
+            log.error("Error reading log file: {}",logFilePath,e);
         }catch (Exception e){
-            logger.error("Unexpected error occurred while processing the log file: {}",logFilePath,e);
+            log.error("Unexpected error occurred while processing the log file: {}",logFilePath,e);
         }
     }
 
