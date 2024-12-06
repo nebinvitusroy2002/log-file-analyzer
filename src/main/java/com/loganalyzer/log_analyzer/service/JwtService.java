@@ -1,11 +1,13 @@
 package com.loganalyzer.log_analyzer.service;
 
+import com.loganalyzer.log_analyzer.exceptions.FileProcessingException;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
@@ -17,6 +19,7 @@ import java.util.Map;
 import java.util.function.Function;
 
 @Service
+@Slf4j
 public class JwtService {
     @Value("${security.jwt.secret-key}")
     private String secretKey;
@@ -26,9 +29,11 @@ public class JwtService {
 
     public String extractUsername(String token) {
         try{
+            log.info("Extracting username from token.");
             return extractClaim(token, Claims::getSubject);
         }catch (JwtException | IllegalArgumentException e){
-            throw new RuntimeException("Error extracting username from token",e);
+            log.error("Error extracting username from token: {}",e.getMessage(),e);
+            throw new FileProcessingException("Invalid token: Unable to extract username.",e);
         }
     }
 
@@ -37,22 +42,27 @@ public class JwtService {
             final Claims claims = extractAllClaims(token);
             return claimsResolver.apply(claims);
         } catch (JwtException | IllegalArgumentException e) {
-            throw new RuntimeException("Error extracting claim from token",e);
+            log.error("Error extracting claim from token: {}",e.getMessage(),e);
+            throw new FileProcessingException("Invalid token: Unable to extract claim.",e);
         }
     }
     public String generateToken(UserDetails userDetails) {
         try{
+            log.info("Generating token for user: {}",userDetails.getUsername());
             return generateToken(new HashMap<>(), userDetails);
         }catch (JwtException e){
-            throw new RuntimeException("Error generating token",e);
+            log.error("Error generating token: {}",e.getMessage(),e);
+            throw new FileProcessingException("Token generation failed.",e);
         }
     }
 
     public String generateToken(Map<String, Object> extraClaims, UserDetails userDetails) {
         try{
+            log.info("Generating token with additional claims for user: {}",userDetails.getUsername());
             return buildToken(extraClaims, userDetails, jwtExpiration);
         }catch (JwtException e){
-            throw new RuntimeException("Error generating token with extra claims",e);
+            log.error("Error generating token with claims: {}",e.getMessage(),e);
+            throw new FileProcessingException("Token generation with claims failed.",e);
         }
     }
 
@@ -75,16 +85,20 @@ public class JwtService {
                     .signWith(getSignInKey(), SignatureAlgorithm.HS256)
                     .compact();
         }catch (JwtException e){
-            throw new RuntimeException("Error building token",e);
+            log.error("Error building token: {}",e.getMessage(),e);
+            throw new FileProcessingException("Error building token",e);
         }
     }
 
     public boolean isTokenValid(String token, UserDetails userDetails) {
         try {
             final String username = extractUsername(token);
-            return (username.equals(userDetails.getUsername())) && !isTokenExpired(token);
+            boolean isValid = username.equals(userDetails.getUsername()) && !isTokenExpired(token);
+            log.info("Token validation result: {}", isValid);
+            return isValid;
         }catch (JwtException | IllegalArgumentException e){
-            throw new RuntimeException("Error validating token",e);
+            log.error("Error validating token: {}", e.getMessage(), e);
+            throw new FileProcessingException("Invalid token.", e);
         }
     }
 
@@ -92,7 +106,8 @@ public class JwtService {
         try{
             return extractExpiration(token).before(new Date());
         }catch (JwtException e){
-            throw new RuntimeException("Error checking token expiration",e);
+            log.error("Error checking token expiration: {}", e.getMessage(), e);
+            throw new FileProcessingException("Unable to check token expiration.", e);
         }
     }
 
@@ -100,7 +115,8 @@ public class JwtService {
         try{
             return extractClaim(token, Claims::getExpiration);
         }catch (JwtException | IllegalArgumentException e){
-            throw new RuntimeException("Error extracting expiration from token",e);
+            log.error("Error extracting expiration date from token: {}", e.getMessage(), e);
+            throw new FileProcessingException("Unable to extract token expiration date.", e);
         }
     }
 
@@ -113,7 +129,8 @@ public class JwtService {
                     .parseClaimsJws(token)
                     .getBody();
         }catch (JwtException e){
-            throw new RuntimeException("Error extracting claims from token",e);
+            log.error("Error extracting claims from token: {}", e.getMessage(), e);
+            throw new FileProcessingException("Invalid token: Unable to extract claims.", e);
         }
     }
 
@@ -122,7 +139,8 @@ public class JwtService {
             byte[] keyBytes = Decoders.BASE64.decode(secretKey);
             return Keys.hmacShaKeyFor(keyBytes);
         }catch (Exception e){
-            throw new RuntimeException("Error decoding the secret key",e);
+            log.error("Error decoding the secret key: {}", e.getMessage(), e);
+            throw new FileProcessingException("Secret key decoding failed.", e);
         }
     }
 }
