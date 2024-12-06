@@ -1,19 +1,16 @@
 package com.loganalyzer.log_analyzer.service;
 
+import com.loganalyzer.log_analyzer.exceptions.FileProcessingException;
 import com.loganalyzer.log_analyzer.model.LogEntry;
 import com.loganalyzer.log_analyzer.repository.LogRepository;
 import com.loganalyzer.log_analyzer.service.interfaces.FileSummaryServiceInterface;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
-
-import java.util.Collections;
 import java.util.List;
 
 @Service
-
+@Slf4j
 public class FileSummaryService implements FileSummaryServiceInterface {
-
-    private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(FileSummaryService.class);
-
 
     private final LogRepository logRepository;
 
@@ -33,7 +30,7 @@ public class FileSummaryService implements FileSummaryServiceInterface {
             return logEntries;
         }catch (Exception e){
             log.error("Error occurred while fetching log details for filter type: {}",filterType,e);
-            return Collections.emptyList();
+            throw new FileProcessingException("Error fetching log details for filter type: "+filterType,e);
         }
     }
 }

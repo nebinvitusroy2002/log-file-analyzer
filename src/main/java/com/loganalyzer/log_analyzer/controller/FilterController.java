@@ -5,8 +5,6 @@ import com.loganalyzer.log_analyzer.service.FileFilterService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.io.IOException;
-
 @RestController
 @RequestMapping("/log")
 public class FilterController {

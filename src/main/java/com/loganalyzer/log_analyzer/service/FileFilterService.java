@@ -1,5 +1,6 @@
 package com.loganalyzer.log_analyzer.service;
 
+import com.loganalyzer.log_analyzer.exceptions.FileProcessingException;
 import com.loganalyzer.log_analyzer.fileDownloadUtil.FileDownloadUtil;
 import com.loganalyzer.log_analyzer.model.LogEntry;
 import com.loganalyzer.log_analyzer.repository.LogRepository;
@@ -19,9 +20,6 @@ import java.util.List;
 @Slf4j
 public class FileFilterService implements FileFilterServiceInterface {
 
-    //private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(FileFilterService.class);
-
-
     private final FileDownloadUtil fileDownloadUtil;
     private final LogRepository logRepository;
 
@@ -37,15 +35,14 @@ public class FileFilterService implements FileFilterServiceInterface {
             logFilePath = fileDownloadUtil.getFileByCode(fileCode);
         }catch (Exception e){
             log.error("Error retrieving file with code {}: {}",fileCode,e.getMessage());
-            return;
+            throw new FileProcessingException("Error retrieving file with code: "+fileCode,e);
         }
         if (logFilePath == null){
-            log.error("Log file path is null for the file code: {}",fileCode);
-            return;
+            throw new FileProcessingException("Log file path is null for the file code: "+fileCode);
         }
         File logfile = logFilePath.toFile();
         if (!logfile.exists() || !logfile.isFile()){
-            log.error("Log file not found {}",logFilePath);
+            throw new FileProcessingException("Log file not found at: "+logFilePath);
         }
 
         List<LogEntry> filteredLogs = new ArrayList<>();
@@ -63,8 +60,7 @@ public class FileFilterService implements FileFilterServiceInterface {
             log.info("Successfully saves {} log entries of type: {}",filteredLogs.size(),filterType);
         }catch (IOException e){
             log.error("Error reading log file: {}",logFilePath,e);
-        }catch (Exception e){
-            log.error("Unexpected error occurred while processing the log file: {}",logFilePath,e);
+            throw new FileProcessingException("Error reading log file: "+logFilePath,e);
         }
     }
 
